@@ -1,0 +1,60 @@
+version: '3.7'
+
+services:
+  redis:
+    container_name: ms-redis
+    image: redis:alpine
+    expose:
+      - 6379
+  postgres:
+    container_name: ms-postgres
+    image: postgres:12-alpine
+    volumes:
+      - postgres_data:/var/lib/postgresql/data/
+    expose:
+      - 5432
+    environment:
+      - POSTGRES_DB=postgres
+      - POSTGRES_USER=postgres
+      - POSTGRES_PASSWORD=xaxaxue
+  django:
+    container_name: ms-django
+    build: ./back
+    image: localize-django-dev
+    command: sh -c "python manage.py migrate --no-input && gunicorn localize.wsgi -b 0:8000"
+    # command: sh -c "python manage.py migrate --no-input && python manage.py runserver 0.0.0.0:8000"
+    volumes:
+      - ./back:/usr/src/back/
+      - users_files:/usr/src/back/users/
+      - logs:/usr/src/back/logs/
+    ports:
+      - 8000:8000
+    depends_on:
+      - postgres
+  celery:
+    container_name: ms-celery
+    image: ms-celery
+    command: celery -A localize worker -B -l INFO
+    volumes:
+      - users_files:/usr/src/back/users/
+    depends_on:
+      - django
+      - redis
+  react:
+    container_name: localize-react-dev
+    build: ./front
+    command: npm start
+    volumes:
+      - node_modules:/usr/src/front/node_modules/
+      - ./front:/usr/src/front/
+    environment:
+      - REACT_APP_API_URL=http://127.0.0.1:8000/api
+    ports:
+      - 3000:3000
+    tty: true
+    stdin_open: true
+
+volumes:
+  postgres_data:
+#  node_modules:
+  logs:

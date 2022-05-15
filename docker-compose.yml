@@ -1,0 +1,21 @@
+version: '3.7'
+
+services:
+  rabbit:
+    container_name: ms-rabbit
+    image: rabbitmq:3-management
+#    command: sh -c "python manage.py migrate --no-input && gunicorn localize.wsgi -b 0:8000"
+#    # command: sh -c "python manage.py migrate --no-input && python manage.py runserver 0.0.0.0:8000"
+#    environment:
+#      - POSTGRES_DB=postgres
+#      - POSTGRES_USER=postgres
+#      - POSTGRES_PASSWORD=xaxaxue
+#    volumes:
+#      - ./back:/usr/src/back/
+#      - users_files:/usr/src/back/users/
+#      - logs:/usr/src/back/logs/
+    ports:
+      - 15672:15672
+      - 5672:5672
+#    depends_on:
+#      - postgres
