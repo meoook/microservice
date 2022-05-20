@@ -1,21 +1,72 @@
 version: '3.7'
 
 services:
+#  redis:
+#    container_name: ms-redis
+#    image: redis:alpine
+#    expose:
+#      - 6379
   rabbit:
-    container_name: ms-rabbit
-    image: rabbitmq:3-management
-#    command: sh -c "python manage.py migrate --no-input && gunicorn localize.wsgi -b 0:8000"
-#    # command: sh -c "python manage.py migrate --no-input && python manage.py runserver 0.0.0.0:8000"
-#    environment:
-#      - POSTGRES_DB=postgres
-#      - POSTGRES_USER=postgres
-#      - POSTGRES_PASSWORD=xaxaxue
-#    volumes:
-#      - ./back:/usr/src/back/
-#      - users_files:/usr/src/back/users/
-#      - logs:/usr/src/back/logs/
+    container_name: ms-rabbit-dev
+    image: rabbitmq:3-management-alpine
     ports:
-      - 15672:15672
-      - 5672:5672
-#    depends_on:
-#      - postgres
+      - "15672:15672"
+      - "5672:5672"
+    restart: always
+  postgres:
+    container_name: ms-postgres-dev
+    image: postgres:14-alpine
+    volumes:
+      - postgres_data:/var/lib/postgresql/data/
+    expose:
+      - 5432
+    env_file:
+      - db.env
+    restart: always
+  django:
+    container_name: ms-django-dev
+    build: ./django
+    image: ms-django
+#    command: sh -c "python manage.py migrate --no-input && gunicorn msweb.wsgi -b 0:8000"
+    command: sh -c "python manage.py migrate --no-input && python manage.py runserver 0.0.0.0:8000"
+    volumes:
+      - ./django:/app
+#      - logs:/app/logs
+    ports:
+      - "8000:8000"
+    depends_on:
+      - postgres
+    env_file:
+      - db.env
+      - .env
+  celery:
+    container_name: ms-celery-dev
+    image: ms-django
+    command: celery -A localize worker -B -l INFO
+    volumes:
+      - ./django:/app
+#      - logs:/app/logs
+    depends_on:
+      - django
+#      - redis
+      - rabbit
+#  react:
+#    container_name: ms-react-dev
+#    build: ./front
+#    command: npm start
+#    volumes:
+#      - node_modules:/usr/src/front/node_modules/
+#      - ./front:/usr/src/front/
+#    environment:
+#      - REACT_APP_API_URL=http://91.225.238.193:8000/api
+##      - REACT_APP_API_URL=http://127.0.0.1:8000/api
+#    ports:
+#      - 3000:3000
+#    tty: true
+#    stdin_open: true
+#    restart: always
+
+
+volumes:
+  postgres_data:
+#  logs:

@@ -3,9 +3,13 @@
 Microservice message controller from **_socials_**
 
 * web site: [not-done-yet.ru][prod]
-* version: 0.0.1
+* version: 0.0.3
 * author: [meok][author]
 * build: rabbitmq
+
+## Functions
+
+- [ ] Control EMCD mining
 
 ## Available socials 
 
@@ -16,8 +20,6 @@ Microservice message controller from **_socials_**
 ## Handlers:
 
 - [ ] **Telegram**
-- [x] **bitbucket** (OAuth)
-- [x] **gitlab**
 
 
 ## RabbitMQ queues
