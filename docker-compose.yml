@@ -25,12 +25,12 @@ services:
     restart: always
   django:
     container_name: ms-django-dev
-    build: ./django
+    build: web
     image: ms-django
 #    command: sh -c "python manage.py migrate --no-input && gunicorn msweb.wsgi -b 0:8000"
     command: sh -c "python manage.py migrate --no-input && python manage.py runserver 0.0.0.0:8000"
     volumes:
-      - ./django:/app
+      - ./web:/app
 #      - logs:/app/logs
     ports:
       - "8000:8000"
@@ -42,14 +42,17 @@ services:
   celery:
     container_name: ms-celery-dev
     image: ms-django
-    command: celery -A localize worker -B -l INFO
+    command: celery -A msweb worker -B -l INFO
     volumes:
-      - ./django:/app
+      - ./web:/app
 #      - logs:/app/logs
     depends_on:
       - django
 #      - redis
       - rabbit
+    env_file:
+      - db.env
+      - .env
 #  react:
 #    container_name: ms-react-dev
 #    build: ./front

@@ -16,6 +16,7 @@ ALLOWED_HOSTS = os.environ.get("DJANGO_ALLOWED_HOSTS", "").split()
 
 # Application definition
 MY_APPS = [
+    'core',
 ]
 
 INSTALLED_APPS = [
@@ -108,9 +109,8 @@ REST_FRAMEWORK = {
 
 # Celery
 CELERY_BROKER_URL = os.environ.get("CELERY_BROKER_URL", "redis://redis:6379")
-# 'amqp://guest:guest@localhost:5672//'
 # CELERY_RESULT_BACKEND = os.environ.get("CELERY_RESULT_BACKEND", "redis://redis:6379")
-# CELERYBEAT_SCHEDULE_FILENAME = os.environ.get("CELERYBEAT_SCHEDULE_FILENAME", "celerybeat-schedule")
+CELERYBEAT_SCHEDULE_FILENAME = "celerybeat-schedule"
 
 CELERY_TIMEZONE = TIME_ZONE
 CELERY_ENABLE_UTC = True
@@ -120,6 +120,18 @@ CELERY_TASK_SERIALIZER = 'json'
 CELERY_RESULT_SERIALIZER = 'json'
 CELERY_IGNORE_RESULT = True
 
+'''
+# celery setting.
+CELERY_CACHE_BACKEND = 'default'
+
+# django setting.
+CACHES = {
+    'default': {
+        'BACKEND': 'django.core.cache.backends.db.DatabaseCache',
+        'LOCATION': 'my_cache_table',
+    }
+}
+'''
 # Logging
 LOGGING = {
     'version': 1,

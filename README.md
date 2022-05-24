@@ -60,6 +60,11 @@ or
 $ sh ./runner.sh 5
 ```
 
+## Development
+class naming prefix:
+- Md - model
+
+
 ## Release notes
 
 [Release notes][log]

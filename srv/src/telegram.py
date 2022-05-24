@@ -1,11 +1,14 @@
 import logging
 from telebot import TeleBot, types
+import __init__
 
 logger = logging.getLogger(__name__)
 
+logger.debug('Start telegram bot')
 logger.info('Start telegram bot')
-logging.debug('Start telegram bot')
-logging.critical('Start telegram bot')
+logger.warning('Start telegram bot')
+logger.error('Start telegram bot')
+logger.critical('Start telegram bot')
 
 token = '5161380886:AAE8CULGj5CCLC2MH5Y4qFd6liz5dapWego'
 assert token, 'Telegram bot token not found'
@@ -33,13 +36,13 @@ def cmd_help(message: types.Message):
     logger.debug(f'Message timestamp: {message.date}')
     _user: types.User = message.from_user
     logger.debug(
-        f'User id: {_user.id} first: {_user.first_name} last: {_user.last_name} full: {_user.full_name} '
+        f'User id: {_user.id} username: {_user.username} first: {_user.first_name} last: {_user.last_name} full: {_user.full_name} '
         f'lang: {_user.language_code} is_bot: {_user.is_bot}')
     _chat: types.Chat = message.chat
     logger.debug(
-        f'Chat id: {_chat.id} last: {_chat.last_name} first: {_chat.first_name} type: {_chat.type} bio: {_chat.bio} '
+        f'Chat id: {_chat.id} username: {_chat.username} last: {_chat.last_name} first: {_chat.first_name} type: {_chat.type} bio: {_chat.bio} '
         f'dsc: {_chat.description} invite_link: {_chat.invite_link} link_id: {_chat.linked_chat_id} '
-        f'location: {_chat.location} title: {_chat.title} username: {_chat.username}')
+        f'location: {_chat.location} title: {_chat.title}')
 
 
 @bot.message_handler(commands=['web'])
