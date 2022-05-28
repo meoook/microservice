@@ -3,7 +3,7 @@
 Microservice message controller from **_socials_**
 
 * web site: [not-done-yet.ru][prod]
-* version: 0.0.3
+* version: 0.0.5
 * author: [meok][author]
 * build: rabbitmq
 

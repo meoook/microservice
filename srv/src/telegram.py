@@ -1,6 +1,5 @@
 import logging
 from telebot import TeleBot, types
-import __init__
 
 logger = logging.getLogger(__name__)
 
