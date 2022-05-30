@@ -1,7 +1,7 @@
 import os
 import sys
 import logging.config
-from bots.mq_father import BotFather
+from bots.mq_father import BotFatherConsumer
 from utils.logger_cfg import LOGGING
 
 logging.config.dictConfig(LOGGING)
@@ -13,7 +13,7 @@ if len(sys.argv) > 1:
         case 'father':
             mq_url: str = os.environ.get('MQ_BROKER_URL', 'amqp://guest:guest@rabbit:5672//')
             logger.info(f'Starting bot.father')
-            BotFather(mq_url)
+            BotFatherConsumer(mq_url)
         case 'boss_queue':
             logger.info(f'Starting bot.boss')
             pass

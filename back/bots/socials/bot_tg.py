@@ -1,19 +1,24 @@
 import logging
+from typing import Callable
+
 from telebot import TeleBot, types
+
+from packages.boss_queue.mq_object import MqBotBossParams, MqBotBossMessage
 from .bot_object import SocialBot
-from utils.enums import SocialName
+from utils.enums import SocialNetwork, MqSource, MqAction
 
 logger = logging.getLogger(__name__)
 
 
 class SocialTelegramBot(SocialBot):
 
-    def __init__(self, pk: int, token: str):
+    def __init__(self, pk: int, token: str, publish: Callable[[bytes], None]):
         assert isinstance(token, str), 'invalid token type'
         assert token, 'token not set'
         self.__pk: int = pk
         self.__bot = TeleBot(token)
         self.__log = f'{self.social.value} bot(pk:{pk})'
+        self.__publish = publish
         logger.info(f'{self.__log} created')
 
     @property
@@ -21,8 +26,8 @@ class SocialTelegramBot(SocialBot):
         return self.__pk
 
     @property
-    def social(self) -> SocialName:
-        return SocialName.TELEGRAM
+    def social(self) -> SocialNetwork:
+        return SocialNetwork.TELEGRAM
 
     def start(self) -> None:
         self.__bot.message_handlers.clear()
@@ -50,19 +55,25 @@ class SocialTelegramBot(SocialBot):
     def __handle_msg(self, message: types.Message, *args) -> None:
         _user: types.User = message.from_user
         _chat: types.Chat = message.chat
-        logger.info(f'{self.__log} income message from chat id: {_chat.id}')
 
-        c_public = _chat.type != 'private'
-        c_name = _chat.title if _chat.title else _chat.username
-        c_id = _chat.id
+        if _user.is_bot is True:
+            logger.warning(f'{self.__log} income message from bot chat_id: {_chat.id} - ignored')
+            return
+        else:
+            logger.info(f'{self.__log} income message from chat id: {_chat.id}')
 
-        if _user.is_bot is False:
-            u_id = _user.id
-            u_username = _user.username
-            u_language = _user.language_code
+        _params = MqBotBossParams({'pk': self.pk,
+                                   'chat_id': _chat.id,
+                                   'title': _chat.title if _chat.title else _chat.username,
+                                   'public': _chat.type != 'private',
+                                   'user_id': _user.id,
+                                   'username': _user.username,
+                                   'language': _user.language_code,
+                                   })
 
+        logger.debug(f'Message timestamp: {message.date}, content_type: {message.content_type}')
         logger.debug(f'Message text: {message.text}')
-        logger.debug(f'Message content_type: {message.content_type}')
-        logger.debug(f'Message timestamp: {message.date}')
-        # TODO: amq - message
+        _msg = MqBotBossMessage(source=MqSource.BOT, action=MqAction.MSG, params=_params, text=message.text)
 
+    def __publish(self, body: bytes) -> None:
+        self.__publish(body)

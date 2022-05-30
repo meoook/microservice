@@ -1,11 +1,11 @@
+from typing import Callable
 from abc import ABC, abstractmethod
-from utils.enums import SocialName
+from utils.enums import SocialNetwork
 
 
 class SocialBot(ABC):
-
     @abstractmethod
-    def __init__(self, pk: int, token: str): ...
+    def __init__(self, pk: int, token: str, publish: Callable[[bytes], None]): ...
 
     @property
     @abstractmethod
@@ -15,7 +15,7 @@ class SocialBot(ABC):
 
     @property
     @abstractmethod
-    def social(self) -> SocialName:
+    def social(self) -> SocialNetwork:
         """ Return two-letters for bot social network """
         ...
 
@@ -42,4 +42,9 @@ class SocialBot(ABC):
     @abstractmethod
     def __handle_msg(self, message: any, *args) -> None:
         """ Handle incoming messages to bot """
+        ...
+
+    @abstractmethod
+    def __publish(self, body: bytes) -> None:
+        """ Mq publish message """
         ...

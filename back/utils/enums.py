@@ -1,7 +1,8 @@
 from enum import Enum
+from django.db import models
 
 
-class SocialName(Enum):
+class SocialNetwork(models.TextChoices):
     TELEGRAM = 'TG'
     INSTAGRAM = 'IN'
     VKONTAKTE = 'VK'
@@ -10,8 +11,13 @@ class SocialName(Enum):
     SLACK = 'SL'
 
 
+class ModuleChoices(models.IntegerChoices):
+    EMCD = 1
+    CURRENCY = 2
+
+
 class MsgTemplate(Enum):
-    HELLO: str = 'hello'
+    HELLO = 'hello'
 
 
 class MqExchange(Enum):
@@ -24,12 +30,12 @@ class MqBotRoute(Enum):
 
 
 class MqSource(Enum):
-    BOT: str = 'bot'
-    SRV: str = 'srv'
+    BOT = 'bot'
+    SRV = 'srv'
 
 
 class MqAction(Enum):
-    CREATE: str = 'create'
-    DELETE: str = 'delete'
-    BEAT: str = 'beat'
-    MSG: str = 'msg'
+    CREATE = 'create'
+    DELETE = 'delete'
+    BEAT = 'beat'
+    MSG = 'msg'

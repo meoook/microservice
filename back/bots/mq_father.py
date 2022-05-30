@@ -3,25 +3,25 @@ from typing import Callable
 from pika.connection import URLParameters
 from pika.adapters.blocking_connection import BlockingChannel, BlockingConnection
 from pika.spec import Basic, BasicProperties
-from utils.enums import SocialName, MqAction, MqExchange, MqBotRoute, MsgTemplate
-from .mq_object import MqFatherMessage
+from utils.enums import SocialNetwork, MqAction, MqExchange, MqBotRoute, MsgTemplate
+from .mq_object import MqFatherMessage, MqFatherParams
 from .socials.bot_object import SocialBot
 from .socials.bot_tg import SocialTelegramBot
 
 logger = logging.getLogger('bot.father')
 
 
-class BotFather:
+class BotFatherConsumer:
     """ AMQ Consumer to control bots """
 
     EXCHANGE = MqExchange.BOT
     QUEUE: str = 'bot_father'
-    __SOCIALS: dict[SocialName, Callable[[int, str], SocialBot]] = {
-        SocialName.TELEGRAM: SocialTelegramBot,
-        SocialName.INSTAGRAM: SocialTelegramBot,
-        SocialName.VKONTAKTE: SocialTelegramBot,
-        SocialName.FACEBOOK: SocialTelegramBot,
-        SocialName.DISCORD: SocialTelegramBot,
+    __SOCIALS: dict[SocialNetwork, Callable[[int, str, Callable[[bytes], None]], SocialBot]] = {
+        SocialNetwork.TELEGRAM: SocialTelegramBot,
+        SocialNetwork.INSTAGRAM: SocialTelegramBot,
+        SocialNetwork.VKONTAKTE: SocialTelegramBot,
+        SocialNetwork.FACEBOOK: SocialTelegramBot,
+        SocialNetwork.DISCORD: SocialTelegramBot,
     }
 
     def __init__(self, mq_url: str):
@@ -74,18 +74,43 @@ class BotFather:
         except Exception as _err:
             logger.error(f'Failed to handle message "{msg}" - {_err}')
 
+    def __bot_msg(self, msg: MqFatherMessage) -> None:
+        _bot_pk: int = msg.params['pk']
+        if _bot_pk in self.__BOTS:
+            _chat_id: int = msg.params['chat_id']
+            _template: str = msg.params['template']
+            _text: str = msg.text
+            logger.info(f'Bot(pk:{_bot_pk}) sending message to chat_id: {_chat_id}')
+            self.__BOTS[_bot_pk].message(_chat_id, _text)
+        else:
+            logger.warning(f'Bot(pk:{_bot_pk}) not found to send message')
+
     def __bot_create(self, msg: MqFatherMessage) -> None:
         """ Create and start bot if not created """
-        _bot_pk: int = msg.params.pk
-        if _bot_pk in self.__BOTS:  # If bot already exist -> stop and remove
-            _bot: SocialBot = self.__BOTS[_bot_pk]
+        _bot_pk: int = msg.params['pk']
+        if self.__bot_remove_if_exist(_bot_pk):
             logger.info(f'Bot(pk:{_bot_pk}) stop and remove to create newone')
-            _bot.stop()
-            self.__BOTS.pop(_bot_pk)
-        logger.info(f'Bot(pk:{_bot_pk}) create and run')
-        _new_bot: SocialBot = self.__SOCIALS[msg.params.social](_bot_pk, msg.params.token)
+        else:
+            logger.info(f'Bot(pk:{_bot_pk}) create and run')
+        _social = SocialNetwork(msg.params['social'])
+        _new_bot: SocialBot = self.__SOCIALS[_social](_bot_pk, msg.params['token'], self.__publish)
         self.__BOTS[_bot_pk] = _new_bot
         self.__BOTS[_bot_pk].start()
+
+    def __bot_delete(self, msg: MqFatherMessage) -> None:
+        _bot_pk: int = msg.params['pk']
+        if self.__bot_remove_if_exist(_bot_pk):
+            logger.info(f'Bot(pk:{_bot_pk}) stopped and removed')
+        else:
+            logger.warning(f'Bot(pk:{_bot_pk}) not found to delete')
+
+    def __bot_remove_if_exist(self, bot_pk: int) -> bool:
+        if bot_pk in self.__BOTS:
+            _bot: SocialBot = self.__BOTS.pop(bot_pk)
+            _bot.stop()
+            return True
+        else:
+            return False
 
     def __bot_heartbeat(self, _: MqFatherMessage) -> None:
         _alife_count: int = 0
@@ -98,23 +123,3 @@ class BotFather:
                 logger.error(f'Bot(pk:{_pk}) failed heartbeat call  - {_err}')
                 _error_count += 1
         logger.info(f'Heartbeat check ended with {_alife_count} alife and {_error_count} bots with errors')
-
-    def __bot_delete(self, msg: MqFatherMessage) -> None:
-        _bot_pk: int = msg.params.pk
-        if _bot_pk in self.__BOTS:
-            _bot: SocialBot = self.__BOTS.pop(_bot_pk)
-            _bot.stop()
-            logger.info(f'Bot(pk:{_bot_pk}) deleted')
-        else:
-            logger.warning(f'Bot(pk:{_bot_pk}) not found to delete')
-
-    def __bot_msg(self, msg: MqFatherMessage) -> None:
-        _bot_pk: int = msg.params.pk
-        if _bot_pk in self.__BOTS:
-            _chat_id: int = msg.params.chat_id
-            _template: MsgTemplate = msg.params.template
-            _text: str = msg.text
-            logger.info(f'Bot(pk:{_bot_pk}) sending message to chat_id: {_chat_id}')
-            self.__BOTS[_bot_pk].message(_chat_id, _text)
-        else:
-            logger.warning(f'Bot(pk:{_bot_pk}) not found to send message')

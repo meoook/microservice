@@ -1,4 +1,5 @@
-import logging.config
+# import logging.config
+# logging.config.dictConfig(LOGGING)
 
 LOGGING = {
     'version': 1,
@@ -39,5 +40,3 @@ LOGGING = {
         },
     },
 }
-
-logging.config.dictConfig(LOGGING)
