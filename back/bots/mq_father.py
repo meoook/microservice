@@ -1,21 +1,19 @@
 import logging
 from typing import Callable
-from pika.connection import URLParameters
-from pika.adapters.blocking_connection import BlockingChannel, BlockingConnection
+from pika.adapters.blocking_connection import BlockingChannel
 from pika.spec import Basic, BasicProperties
-from utils.enums import SocialNetwork, MqAction, MqExchange, MqBotRoute, MsgTemplate
-from .mq_object import MqFatherMessage, MqFatherParams
+from utils.enums import SocialNetwork, MqAction, MqExchange, MqBotRoute
+from utils.mq.consumer import MqConsumer
+from .mq_object import MqFatherMessage
 from .socials.bot_object import SocialBot
 from .socials.bot_tg import SocialTelegramBot
 
 logger = logging.getLogger('bot.father')
 
 
-class BotFatherConsumer:
+class BotFatherConsumer(MqConsumer):
     """ AMQ Consumer to control bots """
 
-    EXCHANGE = MqExchange.BOT
-    QUEUE: str = 'bot_father'
     __SOCIALS: dict[SocialNetwork, Callable[[int, str, Callable[[bytes], None]], SocialBot]] = {
         SocialNetwork.TELEGRAM: SocialTelegramBot,
         SocialNetwork.INSTAGRAM: SocialTelegramBot,
@@ -25,8 +23,8 @@ class BotFatherConsumer:
     }
 
     def __init__(self, mq_url: str):
-        if not mq_url or not isinstance(mq_url, str):
-            raise ValueError('need mq_url to start consuming')
+        super().__init__(mq_url, MqExchange.BOT, 'bot_father', MqBotRoute.FATHER)
+
         self.__BOTS: dict[int, SocialBot] = {}
         self.__actions: dict[MqAction, Callable[[MqFatherMessage], None]] = {
             MqAction.CREATE: self.__bot_create,
@@ -35,31 +33,18 @@ class BotFatherConsumer:
             MqAction.MSG: self.__bot_msg,
         }
 
-        _params: URLParameters = URLParameters(mq_url)
-        _params.socket_timeout = 5
-        _connection: BlockingConnection = BlockingConnection(_params)
-        self.__channel: BlockingChannel = _connection.channel()
-        self.__channel.exchange_declare(exchange=self.EXCHANGE.value, exchange_type='direct')
-
-        _queue = self.__channel.queue_declare(self.QUEUE)
-        _queue_name = _queue.method.queue
-
-        self.__channel.queue_bind(exchange=self.EXCHANGE.value, queue=_queue_name, routing_key=MqBotRoute.FATHER.value)
-        self.__channel.basic_consume(_queue_name, on_message_callback=self.__callback)
-
         try:
-            logger.info(f'Start consuming queue "{_queue_name}"')
-            self.__channel.start_consuming()
+            logger.info(f'Start consuming queue "{self.QUEUE}"')
+            self._start(self.__callback)
         except Exception as _err:
-            logger.warning(f'Stop consuming queue "{_queue_name}" - {_err}')
-            self.__channel.stop_consuming()
-        _connection.close()
+            logger.warning(f'Stop consuming queue "{self.QUEUE}" - {_err}')
 
     def __publish(self, body: bytes) -> None:
         """ Function for bots to put message in queue """
-        self.__channel.basic_publish(exchange=self.EXCHANGE.value, routing_key=MqBotRoute.BOSS.value, body=body)
+        logger.info('Send mq message')
+        self._publish(MqBotRoute.BOSS, body=body)
 
-    def __callback(self, ch: BlockingChannel, method: Basic.Deliver, properties: BasicProperties, body: bytes):
+    def __callback(self, ch: BlockingChannel, method: Basic.Deliver, _: BasicProperties, body: bytes):
         try:
             _msg: MqFatherMessage = MqFatherMessage.from_bytes(body)
         except Exception as _err:
@@ -72,7 +57,7 @@ class BotFatherConsumer:
         try:
             self.__actions[msg.action](msg)
         except Exception as _err:
-            logger.error(f'Failed to handle message "{msg}" - {_err}')
+            logger.error(f'Failed {msg} - {_err}')
 
     def __bot_msg(self, msg: MqFatherMessage) -> None:
         _bot_pk: int = msg.params['pk']
@@ -81,7 +66,7 @@ class BotFatherConsumer:
             _template: str = msg.params['template']
             _text: str = msg.text
             logger.info(f'Bot(pk:{_bot_pk}) sending message to chat_id: {_chat_id}')
-            self.__BOTS[_bot_pk].message(_chat_id, _text)
+            self.__BOTS[_bot_pk].message(_chat_id, _text, _template)
         else:
             logger.warning(f'Bot(pk:{_bot_pk}) not found to send message')
 
@@ -94,6 +79,7 @@ class BotFatherConsumer:
             logger.info(f'Bot(pk:{_bot_pk}) create and run')
         _social = SocialNetwork(msg.params['social'])
         _new_bot: SocialBot = self.__SOCIALS[_social](_bot_pk, msg.params['token'], self.__publish)
+        logger.info(f'Bot(pk:{_bot_pk}) created')
         self.__BOTS[_bot_pk] = _new_bot
         self.__BOTS[_bot_pk].start()
 

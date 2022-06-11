@@ -19,7 +19,7 @@ class SocialTelegramBot(SocialBot):
         self.__bot = TeleBot(token)
         self.__log = f'{self.social.value} bot(pk:{pk})'
         self.__publish = publish
-        logger.info(f'{self.__log} created')
+        logger.info(f'{self.__log} created!')
 
     @property
     def pk(self) -> int:
@@ -30,10 +30,16 @@ class SocialTelegramBot(SocialBot):
         return SocialNetwork.TELEGRAM
 
     def start(self) -> None:
-        self.__bot.message_handlers.clear()
-        self.__bot.message_handler(self.__handle_msg, commands=[], regexp=None, func=None, content_types=['text'])
+        # self.__bot.message_handlers.clear()
+        # self.__bot.message_handler(self.__handle_msg, commands=[], regexp=None, func=None, content_types=['text'])
         # self.__bot.message_handler(content_types=['photo', 'video', 'sticker'])
+
+        # self.__bot.set_update_listener(self._handle_msg)  # register listener
+        self.__bot.register_message_handler(self._handle_msg, content_types=['text'])  # register listener
+        # Interval setup. Sleep 3 secs between request new message.
+        # self.__bot.polling(interval=3)
         logger.info(f'{self.__log} start')
+        # Use none_stop flag let polling will not stop when get new message occur error.
         self.__bot.polling(non_stop=True)
 
     def stop(self) -> None:
@@ -45,14 +51,18 @@ class SocialTelegramBot(SocialBot):
         self.__bot.get_me()
         # TODO: amq - answer
 
-    def message(self, chat_id: int, msg: str) -> None:
+    def message(self, chat_id: int, msg: str, template: str = None) -> None:
         if not msg:
             logger.warning(f'{self.__log} sending empty message for {chat_id=}')
             return
         logger.info(f'{self.__log} sending message for {chat_id=}')
         self.__bot.send_message(chat_id, msg)
 
-    def __handle_msg(self, message: types.Message, *args) -> None:
+    def _handle_msg(self, message: types.Message, *args) -> None:
+        logger.warning('Message NEW')
+        logger.warning(f'Message {message}')
+        logger.warning(f'Message {dir(message)}')
+        logger.warning(f'Message {[*message]}')
         _user: types.User = message.from_user
         _chat: types.Chat = message.chat
 
@@ -75,5 +85,5 @@ class SocialTelegramBot(SocialBot):
         logger.debug(f'Message text: {message.text}')
         _msg = MqBotBossMessage(source=MqSource.BOT, action=MqAction.MSG, params=_params, text=message.text)
 
-    def __publish(self, body: bytes) -> None:
+    def _publish(self, body: bytes) -> None:
         self.__publish(body)

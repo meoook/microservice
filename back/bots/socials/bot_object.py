@@ -35,16 +35,16 @@ class SocialBot(ABC):
         ...
 
     @abstractmethod
-    def message(self, chat_id: int, msg: str) -> None:
+    def message(self, chat_id: int, msg: str, template: str = None) -> None:
         """ Send message in chat """
         ...
 
     @abstractmethod
-    def __handle_msg(self, message: any, *args) -> None:
+    def _handle_msg(self, message: any, *args) -> None:
         """ Handle incoming messages to bot """
         ...
 
     @abstractmethod
-    def __publish(self, body: bytes) -> None:
+    def _publish(self, body: bytes) -> None:
         """ Mq publish message """
         ...

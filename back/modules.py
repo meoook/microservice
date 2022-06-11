@@ -1,12 +1,11 @@
 import os
 import sys
-import logging.config
+import logging
 from bots.mq_father import BotFatherConsumer
-from utils.logger_cfg import LOGGING
 
-logging.config.dictConfig(LOGGING)
+_log_fmt = '{asctime} [{levelname:.1}] {name} | {message}'
+logging.basicConfig(format=_log_fmt, datefmt='%Y-%m-%d %H:%M:%S', style='{', level=logging.INFO)
 logger = logging.getLogger('module.start')
-
 
 if len(sys.argv) > 1:
     match sys.argv[1]:
@@ -19,6 +18,7 @@ if len(sys.argv) > 1:
             pass
         case 'need_django':
             import django
+
             os.environ.setdefault('DJANGO_SETTINGS_MODULE', 'back.boss.settings')
             django.setup()
         case 'test':

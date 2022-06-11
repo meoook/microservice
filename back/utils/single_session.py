@@ -1,9 +1,8 @@
 from typing import Literal
-
-from requests import Session, RequestException
+import requests
 from requests.packages import urllib3
 from requests.packages.urllib3.exceptions import InsecureRequestWarning
-from utils.singleton import Singleton
+from utils.singleton import MetaSingleton
 
 urllib3.disable_warnings(InsecureRequestWarning)
 
@@ -15,10 +14,10 @@ class AppSessionException(Exception):
         super().__init__(f'[http] {message}')
 
 
-class AppSession(Singleton):
+class AppSession(metaclass=MetaSingleton):
     def __init__(self):
         self.__headers = {}
-        self.__session = Session()
+        self.__session = requests.Session()
 
     def request(self, url: str, method: HttpMethod = 'GET', headers: dict[str, str] = None, **kwargs) -> any:
         assert url, AppSessionException(f'url not set to make request')
@@ -26,11 +25,14 @@ class AppSession(Singleton):
 
         try:
             _response = self.__session.request(method=method, url=url, headers=_headers, timeout=10, **kwargs)
-        except RequestException as _err:
+        except requests.RequestException as _err:
             raise AppSessionException(f'{method} to {url} failed - {_err}')
 
         if _response.status_code < 300:
-            return _response.json()
+            try:
+                return _response.json()
+            except requests.JSONDecodeError:
+                return True
         raise AppSessionException(f'{method} to {url} failed with code {_response.status_code}')
 
     def get(self, url: str, headers: dict[str, str] = None, params: dict[str, str] = None, **kwargs):

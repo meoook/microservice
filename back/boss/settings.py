@@ -151,11 +151,6 @@ LOGGING = {
             'style': '{',
             'datefmt': '%Y-%m-%d %H:%M:%S',
         },
-        'simple': {
-            'format': '[{levelname:.1}] {module} {message}',
-            'style': '{',
-            'datefmt': '%Y-%m-%d %H:%M:%S',
-        },
     },
     'filters': {
         'require_debug_true': {
@@ -168,19 +163,14 @@ LOGGING = {
     'handlers': {
         'sql': {
             'level': 'DEBUG',
-            'filters': ['require_debug_true'],
+            # 'filters': ['require_debug_true'],
             'class': 'logging.StreamHandler',
             'formatter': 'sql',
         },
-        'debug': {
-            'level': 'INFO',
-            'filters': ['require_debug_true'],
-            'class': 'logging.StreamHandler',
-            'formatter': 'simple',
-        },
         'console': {
-            'level': os.getenv('DJANGO_LOG_LEVEL', 'INFO'),
-            'filters': ['require_debug_false'],
+            # 'level': os.getenv('DJANGO_LOG_LEVEL', 'INFO'),
+            'level': 'INFO',
+            # 'filters': ['require_debug_false'],
             'class': 'logging.StreamHandler',
             'formatter': 'full',
         },
@@ -201,33 +191,34 @@ LOGGING = {
     },
     'loggers': {
         'root': {
-            'handlers': ['console'],
+            'handlers': ['console', 'file'],
             'level': 'DEBUG',
             'propagate': False,
         },
         'django': {
-            'handlers': ['console', 'file', 'debug'],
-            'level': 'DEBUG',
+            'handlers': ['console', 'file'],
+            'level': 'INFO',
             'propagate': True,
         },
         'django.request': {
-            'handlers': ['console', 'file', 'debug'],
+            'handlers': ['console', 'file'],
             'level': 'INFO',
             'propagate': False,
+
         },
         'django.server': {
-            'handlers': ['console', 'file', 'debug'],
-            'level': 'ERROR',
+            'handlers': ['console', 'file'],
+            'level': 'WARNING',
             'propagate': False,
         },
         'django.db.backends': {
             'handlers': ['sql'],
-            'level': 'WARNING',  # set DEBUG for debug sql queries :)
+            'level': 'INFO',  # set DEBUG for debug sql queries :)
             'propagate': False,
         },
         'logfile': {
             'handlers': ['file'],
-            'level': 'INFO',  # When to log in file
+            'level': 'WARNING',  # When to log in file
             'propagate': True,
         },
         'django.mail': {
@@ -235,5 +226,6 @@ LOGGING = {
             'level': 'ERROR',  # When to send mails
             'propagate': True,
         },
+        'pika': { 'level': 'WARNING'}
     },
 }

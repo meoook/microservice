@@ -1,4 +1,4 @@
-from src.services.emcd.api import EmcdApi
+from tmp.services.emcd.api import EmcdApi
 
 api_key = '57f4b7e6-77a9-4eef-ae3c-1715624ed05c'
 api = EmcdApi()
